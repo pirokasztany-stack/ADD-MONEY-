@@ -1,4 +1,4 @@
--- [[ VALUE HACK V1 - PREMIUM SMART EDITION ]] --
+-- [[ VALUE HACK V1 - LUMA GUI ]] --
 
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("ReplicatedStorage")
@@ -8,7 +8,7 @@ local Player = game.Players.LocalPlayer
 task.wait(1)
 
 local sg = Instance.new("ScreenGui")
-sg.Name = "ValueHack_Premium"
+sg.Name = "LumaValueHack"
 sg.Parent = game.CoreGui
 
 -- --- NOWOCZESNY PASEK ŁADOWANIA ---
@@ -37,11 +37,9 @@ local moneyKeywords = {"cash", "coin", "money", "currency", "gold", "add", "egg"
 
 -- --- SZUKANIE LEADERSTATÓW ---
 local function getMyMoneyValue()
-    -- Szuka w folderze leaderstats (widoczne na Twoim screenie)
     local stats = Player:FindFirstChild("leaderstats")
     if stats then
         for _, v in pairs(stats:GetChildren()) do
-            -- Szukamy czegokolwiek co jest liczbą (Money, Rebirths itp.)
             if v:IsA("IntValue") or v:IsA("NumberValue") or v:IsA("StringValue") then
                 return v
             end
@@ -106,11 +104,12 @@ local function runLoading()
     end
 end
 
--- --- GŁÓWNE GUI ---
+-- --- GŁÓWNE GUI (Z PODPISEM LUMA) ---
 function createMainGui()
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0, 220, 0, 160)
-    main.Position = UDim2.new(0.5, -110, 0.5, -80)
+    -- Nieco powiększone okno, żeby zmieścić podpis
+    main.Size = UDim2.new(0, 220, 0, 180) 
+    main.Position = UDim2.new(0.5, -110, 0.5, -90)
     main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     main.BorderSizePixel = 0
     main.Active = true
@@ -143,7 +142,7 @@ function createMainGui()
     -- Pole Amount
     local amountInput = Instance.new("TextBox")
     amountInput.Size = UDim2.new(0.8, 0, 0, 30)
-    amountInput.Position = UDim2.new(0.1, 0, 0.35, 0)
+    amountInput.Position = UDim2.new(0.1, 0, 0.32, 0) -- Nieco wyżej
     amountInput.PlaceholderText = "Amount"
     amountInput.Text = ""
     amountInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
@@ -157,7 +156,7 @@ function createMainGui()
     -- Przycisk ADD VALUE
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(0.8, 0, 0, 35)
-    btn.Position = UDim2.new(0.1, 0, 0.65, 0)
+    btn.Position = UDim2.new(0.1, 0, 0.58, 0) -- Nieco wyżej
     btn.Text = "ADD VALUE"
     btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
     btn.TextColor3 = Color3.new(1, 1, 1)
@@ -166,6 +165,17 @@ function createMainGui()
     
     local btnCorner = Instance.new("UICorner")
     btnCorner.Parent = btn
+
+    -- --- PODPIS MADE BY LUMA GUI ---
+    local signature = Instance.new("TextLabel")
+    signature.Size = UDim2.new(1, 0, 0, 20)
+    signature.Position = UDim2.new(0, 0, 1, -25) -- Na samym dole
+    signature.Text = "MADE BY LUMA GUI"
+    signature.TextColor3 = Color3.fromRGB(120, 120, 120) -- Subtelny szary
+    signature.Font = Enum.Font.Gotham
+    signature.TextSize = 11
+    signature.BackgroundTransparency = 1
+    signature.Parent = main
 
     -- Akcja przycisku z animacją koloru
     btn.MouseButton1Click:Connect(function()
