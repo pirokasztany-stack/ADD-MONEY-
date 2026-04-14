@@ -1,212 +1,221 @@
--- [[ VALUE HACK V1 - LUMA GUI ]] --
+-- [[ LUMA MULTI-HACK V4 - ACCESSIBILITY UPDATE ]] --
 
 local UIS = game:GetService("UserInputService")
 local RS = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
+local TS = game:GetService("TweenService")
 local Player = game.Players.LocalPlayer
 
-task.wait(1)
-
 local sg = Instance.new("ScreenGui")
-sg.Name = "LumaValueHack"
+sg.Name = "Luma_Multi_V4"
 sg.Parent = game.CoreGui
 
--- --- NOWOCZESNY PASEK ŁADOWANIA ---
-local loadFrame = Instance.new("Frame")
-loadFrame.Size = UDim2.new(0, 350, 0, 50)
-loadFrame.Position = UDim2.new(0.5, -175, 1, -80)
-loadFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-loadFrame.BorderSizePixel = 0
-loadFrame.Parent = sg
-
-local uiCornerLoad = Instance.new("UICorner")
-uiCornerLoad.CornerRadius = UDim.new(0, 12)
-uiCornerLoad.Parent = loadFrame
-
-local loadLabel = Instance.new("TextLabel")
-loadLabel.Size = UDim2.new(1, 0, 1, 0)
-loadLabel.BackgroundTransparency = 1
-loadLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
-loadLabel.Font = Enum.Font.Code
-loadLabel.TextSize = 15
-loadLabel.Text = "SYSTEM BOOTING..."
-loadLabel.Parent = loadFrame
-
-local foundRemote = nil
-local moneyKeywords = {"cash", "coin", "money", "currency", "gold", "add", "egg", "neko"}
-
--- --- SZUKANIE LEADERSTATÓW ---
-local function getMyMoneyValue()
-    local stats = Player:FindFirstChild("leaderstats")
-    if stats then
-        for _, v in pairs(stats:GetChildren()) do
-            if v:IsA("IntValue") or v:IsA("NumberValue") or v:IsA("StringValue") then
-                return v
-            end
-        end
-    end
-    return nil
+-- --- SYSTEM DŹWIĘKÓW ---
+local function playSfx(id)
+    local s = Instance.new("Sound")
+    s.SoundId = "rbxassetid://" .. tostring(id)
+    s.Volume = 0.6
+    s.Parent = game.SoundService
+    s:Play()
+    s.Ended:Connect(function() s:Destroy() end)
 end
 
-local function runLoading()
-    loadLabel.Text = "Searching for Player Leaderstats..."
-    task.wait(0.8)
-    
-    local myValueObj = getMyMoneyValue()
-    
-    if not myValueObj then
-        loadLabel.Text = "CRITICAL ERROR: NO STATS FOUND"
-        loadLabel.TextColor3 = Color3.new(1, 0, 0)
+-- --- UI: PASEK STATUSU ---
+local statusFrame = Instance.new("Frame")
+statusFrame.Size = UDim2.new(0, 400, 0, 60)
+statusFrame.Position = UDim2.new(0.5, -200, 1, 100)
+statusFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+statusFrame.Parent = sg
+Instance.new("UICorner", statusFrame).CornerRadius = UDim.new(0, 12)
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 1, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+statusLabel.Font = Enum.Font.Code
+statusLabel.TextSize = 18 -- POWIĘKSZONE
+statusLabel.Text = "LUMA: INITIALIZING DEEP SCAN..."
+statusLabel.Parent = statusFrame
+
+-- --- LOGIKA SKANOWANIA ---
+local foundStats = {} 
+
+local function runDeepScan()
+    TS:Create(statusFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Position = UDim2.new(0.5, -200, 1, -80)}):Play()
+    task.wait(1)
+
+    local statsFolder = Player:FindFirstChild("leaderstats")
+    if not statsFolder then
+        statusLabel.Text = "ERROR: NO LEADERSTATS"
+        playSfx(139063727738556)
         task.wait(2)
         sg:Destroy()
         return
     end
 
-    loadLabel.Text = "Intercepting RemoteEvents..."
-    local potentials = {}
-    for _, v in pairs(RS:GetDescendants()) do
-        if v:IsA("RemoteEvent") then
-            local n = v.Name:lower()
-            for _, key in pairs(moneyKeywords) do
-                if n:find(key) then table.insert(potentials, v) break end
+    local allRemotes = RS:GetDescendants()
+    for _, stat in pairs(statsFolder:GetChildren()) do
+        if stat:IsA("IntValue") or stat:IsA("NumberValue") then
+            statusLabel.Text = "SCANNING: " .. stat.Name:upper()
+            for _, r in pairs(allRemotes) do
+                if (r:IsA("RemoteEvent") or r:IsA("RemoteFunction")) then
+                    local rn = r.Name:lower()
+                    local sn = stat.Name:lower()
+                    if rn:find(sn) or (sn == "money" and rn:find("cash")) or (sn == "rebirths" and rn:find("reb")) then
+                        table.insert(foundStats, {Obj = stat, Remote = r, Name = stat.Name})
+                        break
+                    end
+                end
             end
         end
     end
 
-    -- TESTOWANIE +1
-    local success = false
-    for _, remote in pairs(potentials) do
-        loadLabel.Text = "Testing: " .. remote.Name
-        local old = tonumber(myValueObj.Value) or 0
-        remote:FireServer(1)
-        
+    if #foundStats > 0 then
+        statusLabel.Text = "VERIFICATION SUCCESSFUL!"
+        playSfx(117748447860239)
+        task.wait(1.5)
+        TS:Create(statusFrame, TweenInfo.new(0.5), {Position = UDim2.new(0.5, -200, 1, 100)}):Play()
         task.wait(0.6)
-        
-        local new = tonumber(myValueObj.Value) or 0
-        if new > old then
-            foundRemote = remote
-            success = true
-            break
-        end
-    end
-
-    if success then
-        loadLabel.Text = "CONNECTED TO: " .. foundRemote.Name:upper()
-        loadLabel.TextColor3 = Color3.new(0, 1, 0)
-        task.wait(1)
-        loadFrame:Destroy()
+        statusFrame:Destroy()
         createMainGui()
     else
-        loadLabel.Text = "VULNERABILITY TEST FAILED"
-        loadLabel.TextColor3 = Color3.new(1, 0, 0)
+        statusLabel.Text = "VULNERABILITY NOT FOUND"
+        playSfx(139063727738556)
         task.wait(2)
         sg:Destroy()
     end
 end
 
--- --- GŁÓWNE GUI (Z PODPISEM LUMA) ---
+-- --- GŁÓWNE GUI ---
 function createMainGui()
     local main = Instance.new("Frame")
-    -- Nieco powiększone okno, żeby zmieścić podpis
-    main.Size = UDim2.new(0, 220, 0, 180) 
-    main.Position = UDim2.new(0.5, -110, 0.5, -90)
-    main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    main.BorderSizePixel = 0
-    main.Active = true
-    main.Draggable = true
+    main.Size = UDim2.new(0, 280, 0, 320)
+    main.Position = UDim2.new(0.5, -140, 0.5, -160)
+    main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     main.Parent = sg
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
 
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 15)
-    mainCorner.Parent = main
-
-    -- Styl nagłówka
+    -- HEADER
     local header = Instance.new("Frame")
-    header.Size = UDim2.new(1, 0, 0, 40)
-    header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    header.Size = UDim2.new(1, 0, 0, 55)
+    header.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     header.Parent = main
-    
-    local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UDim.new(0, 15)
-    headerCorner.Parent = header
+    Instance.new("UICorner", header)
 
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 1, 0)
-    title.Text = "VALUE HACK V1"
+    title.Size = UDim2.new(1, 0, 0.6, 0)
+    title.Text = "LUMA MULTI-HACK"
     title.TextColor3 = Color3.new(1, 1, 1)
     title.Font = Enum.Font.GothamBold
+    title.TextSize = 20 -- POWIĘKSZONE
     title.BackgroundTransparency = 1
-    title.TextSize = 14
     title.Parent = header
 
-    -- Pole Amount
+    local subTitle = Instance.new("TextLabel")
+    subTitle.Size = UDim2.new(1, 0, 0.4, 0)
+    subTitle.Position = UDim2.new(0, 0, 0.55, 0)
+    subTitle.Text = "ADVANCED GAME HACK"
+    subTitle.TextColor3 = Color3.fromRGB(0, 255, 150)
+    subTitle.Font = Enum.Font.Gotham
+    subTitle.TextSize = 13 -- POWIĘKSZONE
+    subTitle.BackgroundTransparency = 1
+    subTitle.Parent = header
+
+    -- PRZYCISK ZAMKNIĘCIA (X)
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 35, 0, 35)
+    closeBtn.Position = UDim2.new(1, -40, 0, 10)
+    closeBtn.Text = "X"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 18
+    closeBtn.Parent = main
+    Instance.new("UICorner", closeBtn)
+    closeBtn.MouseButton1Click:Connect(function() sg:Destroy() end)
+
+    -- DROPDOWN LISTA
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.Size = UDim2.new(0.9, 0, 0, 90)
+    scroll.Position = UDim2.new(0.05, 0, 0.22, 0)
+    scroll.BackgroundTransparency = 1
+    scroll.CanvasSize = UDim2.new(0, 0, 2, 0)
+    scroll.ScrollBarThickness = 3
+    scroll.Parent = main
+
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = scroll
+
+    local selectedData = foundStats[1]
+
+    for _, data in pairs(foundStats) do
+        local opt = Instance.new("TextButton")
+        opt.Size = UDim2.new(1, -10, 0, 30)
+        opt.Text = "Target: " .. data.Name
+        opt.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        opt.TextColor3 = Color3.new(0.8, 0.8, 0.8)
+        opt.Font = Enum.Font.Gotham
+        opt.TextSize = 14
+        opt.Parent = scroll
+        Instance.new("UICorner", opt)
+
+        opt.MouseButton1Click:Connect(function()
+            playSfx(133915937837646)
+            selectedData = data
+            for _, b in pairs(scroll:GetChildren()) do if b:IsA("TextButton") then b.TextColor3 = Color3.new(0.8, 0.8, 0.8) end end
+            opt.TextColor3 = Color3.fromRGB(0, 255, 150)
+        end)
+    end
+
+    -- INPUT: AMOUNT
     local amountInput = Instance.new("TextBox")
-    amountInput.Size = UDim2.new(0.8, 0, 0, 30)
-    amountInput.Position = UDim2.new(0.1, 0, 0.32, 0) -- Nieco wyżej
-    amountInput.PlaceholderText = "Amount"
-    amountInput.Text = ""
+    amountInput.Size = UDim2.new(0.8, 0, 0, 40)
+    amountInput.Position = UDim2.new(0.1, 0, 0.55, 0)
+    amountInput.PlaceholderText = "Amount" -- Zmienione z TextBox na Amount
+    amountInput.Text = "" -- Czyścimy domyślny tekst
     amountInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
     amountInput.TextColor3 = Color3.new(1, 1, 1)
     amountInput.Font = Enum.Font.Gotham
+    amountInput.TextSize = 16
     amountInput.Parent = main
-    
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.Parent = amountInput
+    Instance.new("UICorner", amountInput)
 
-    -- Przycisk ADD VALUE
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.8, 0, 0, 35)
-    btn.Position = UDim2.new(0.1, 0, 0.58, 0) -- Nieco wyżej
-    btn.Text = "ADD VALUE"
-    btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = main
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.Parent = btn
+    -- BUTTON: INJECT
+    local addBtn = Instance.new("TextButton")
+    addBtn.Size = UDim2.new(0.8, 0, 0, 50)
+    addBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
+    addBtn.Text = "INJECT VALUE"
+    addBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+    addBtn.TextColor3 = Color3.new(1, 1, 1)
+    addBtn.Font = Enum.Font.GothamBold
+    addBtn.TextSize = 18
+    addBtn.Parent = main
+    Instance.new("UICorner", addBtn)
 
-    -- --- PODPIS MADE BY LUMA GUI ---
-    local signature = Instance.new("TextLabel")
-    signature.Size = UDim2.new(1, 0, 0, 20)
-    signature.Position = UDim2.new(0, 0, 1, -25) -- Na samym dole
-    signature.Text = "MADE BY LUMA GUI"
-    signature.TextColor3 = Color3.fromRGB(120, 120, 120) -- Subtelny szary
-    signature.Font = Enum.Font.Gotham
-    signature.TextSize = 11
-    signature.BackgroundTransparency = 1
-    signature.Parent = main
-
-    -- Akcja przycisku z animacją koloru
-    btn.MouseButton1Click:Connect(function()
-        local val = tonumber(amountInput.Text)
-        if val and foundRemote then
-            foundRemote:FireServer(val)
-            btn.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-            btn.Text = "SUCCESS!"
-            task.wait(0.5)
-            btn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-            btn.Text = "ADD VALUE"
+    addBtn.MouseButton1Click:Connect(function()
+        if selectedData and selectedData.Remote then
+            playSfx(133915937837646)
+            playSfx(139922061047157)
+            local val = tonumber(amountInput.Text) or 0
+            if selectedData.Remote:IsA("RemoteEvent") then selectedData.Remote:FireServer(val) else selectedData.Remote:InvokeServer(val) end
+            
+            addBtn.Text = "SUCCESS!"
+            task.wait(1)
+            addBtn.Text = "INJECT VALUE"
         end
     end)
 
-    -- Przycisk X (Zamknij)
-    local close = Instance.new("TextButton")
-    close.Size = UDim2.new(0, 25, 0, 25)
-    close.Position = UDim2.new(1, -30, 0, 7)
-    close.Text = "×"
-    close.TextColor3 = Color3.new(1, 1, 1)
-    close.BackgroundTransparency = 1
-    close.TextSize = 25
-    close.Parent = main
-    close.MouseButton1Click:Connect(function() sg:Destroy() end)
-
-    -- Toggle (Right Control)
-    UIS.InputBegan:Connect(function(i, g)
-        if not g and i.KeyCode == Enum.KeyCode.RightControl then
-            main.Visible = not main.Visible
-        end
-    end)
+    local sig = Instance.new("TextLabel")
+    sig.Size = UDim2.new(1, 0, 0, 25)
+    sig.Position = UDim2.new(0, 0, 1, -30)
+    sig.Text = "MADE BY LUMA GUI"
+    sig.TextColor3 = Color3.fromRGB(150, 150, 150)
+    sig.TextSize = 12
+    sig.BackgroundTransparency = 1
+    sig.Parent = main
+    
+    main.Active = true
+    main.Draggable = true
 end
 
-task.spawn(runLoading)
+task.spawn(runDeepScan)
